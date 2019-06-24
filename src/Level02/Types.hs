@@ -57,6 +57,9 @@ newtype CommentText = CommentText Text
 -- ViewRq : Which needs the topic being requested.
 -- ListRq : Which doesn't need anything and lists all of the current topics.
 data RqType
+  = AddRq Topic CommentText
+  | ViewRq Topic
+  | ListRq
 
 -- Not everything goes according to plan, but it's important that our types
 -- reflect when errors can be introduced into our program. Additionally it's
@@ -64,6 +67,9 @@ data RqType
 
 -- Fill in the error constructors as you need them.
 data Error
+  = EmptyTopicText
+  | EmptyCommentText
+  | NotFound
 
 
 -- Provide the constructors for a sum type to specify the `ContentType` Header,
@@ -72,7 +78,11 @@ data Error
 --
 -- - plain text
 -- - json
+
 data ContentType
+  = PlainText
+  | JSON
+
 
 -- The ``ContentType`` constructors don't match what is required for the header
 -- information. Because ``wai`` uses a stringly type. So write a function that
@@ -88,8 +98,8 @@ data ContentType
 renderContentType
   :: ContentType
   -> ByteString
-renderContentType =
-  error "renderContentType not implemented"
+renderContentType PlainText = "text/plain"
+renderContentType JSON = "application/json"
 
 -- We can choose to *not* export the constructor for a data type and instead
 -- provide a function of our own. In our case, we're not interested in empty
@@ -102,25 +112,22 @@ renderContentType =
 mkTopic
   :: Text
   -> Either Error Topic
-mkTopic =
-  error "mkTopic not implemented"
+mkTopic t = if t == "" then Left EmptyTopicText else Right (Topic t)
 
 getTopic
   :: Topic
   -> Text
-getTopic =
-  error "getTopic not implemented"
+getTopic (Topic t) = t 
 
 mkCommentText
   :: Text
   -> Either Error CommentText
-mkCommentText =
-  error "mkCommentText not implemented"
+mkCommentText t = if t == "" then Left EmptyCommentText else Right (CommentText t)
+-- TODO: Write one function to generalise the two mk fns; pattern match; remove whitespace
 
 getCommentText
   :: CommentText
   -> Text
-getCommentText =
-  error "getCommentText not implemented"
+getCommentText (CommentText ct) = ct
 
 ---- Go to `src/Level02/Core.hs` next

@@ -49,11 +49,28 @@ import qualified Level02.Core       as Core
 main :: IO ()
 main = defaultMain $ testGroup "Applied FP Course - Tests"
 
-  [ testWai Core.app "List Topics" $
-      get "fudge/view" >>= assertStatus' HTTP.status200
+  [ testWai Core.app "List Topics" $ do
+      resp <- get "list"
+      assertStatus' HTTP.status200 resp
+      assertBody "List of topics" resp
 
-  , testWai Core.app "Empty Input" $ do
+  , testWai Core.app "Add with valid comment" $ do
+      resp <- post "fudge/add" "Foo"
+      assertStatus' HTTP.status200 resp
+      assertBody "Thanks, we added your comment" resp
+
+  , testWai Core.app "Add with empty comment input" $ do
       resp <- post "fudge/add" ""
       assertStatus' HTTP.status400 resp
-      assertBody "Empty Comment Text" resp
+      assertBody "ERROR: Empty Comment Text" resp
+
+  , testWai Core.app "View Topic" $ do
+      resp <- get "fudge/view"
+      assertStatus' HTTP.status200 resp
+      assertBody "The one topic you wanted" resp
+
+  , testWai Core.app "Not found" $ do
+      resp <- get "notvalid"
+      assertStatus' HTTP.status404 resp
+      assertBody "ERROR: Not found" resp
   ]
