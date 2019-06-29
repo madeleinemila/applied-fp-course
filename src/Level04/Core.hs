@@ -22,7 +22,7 @@ import qualified Data.ByteString.Lazy.Char8         as LBS
 
 import           Data.Either                        (Either (Left, Right),
                                                      either)
-
+import           Data.Bifunctor                     (first, second)
 import           Data.Semigroup                     ((<>))
 import           Data.Text                          (Text)
 import           Data.Text.Encoding                 (decodeUtf8)
@@ -33,13 +33,14 @@ import           Database.SQLite.SimpleErrors.Types (SQLiteResponse)
 import           Waargonaut.Encode                  (Encoder')
 import qualified Waargonaut.Encode                  as E
 
-import           Level04.Conf                       (Conf, firstAppConfig)
+import           Level04.Conf                       (Conf(..), firstAppConfig)
 import qualified Level04.DB                         as DB
 import           Level04.Types                      (ContentType (JSON, PlainText),
-                                                     Error (EmptyCommentText, EmptyTopic, UnknownRoute),
+                                                     Error (..),
                                                      RqType (AddRq, ListRq, ViewRq),
                                                      mkCommentText, mkTopic,
-                                                     renderContentType)
+                                                     renderContentType, encodeComment,
+                                                     encodeTopic)
 
 -- Our start-up is becoming more complicated and could fail in new and
 -- interesting ways. But we also want to be able to capture these errors in a
@@ -49,7 +50,11 @@ data StartUpError
   deriving Show
 
 runApp :: IO ()
-runApp = error "runApp needs re-implementing"
+runApp = do
+           res <- prepareAppReqs
+           case res of
+             Left _ -> pure () -- TODO: error message
+             Right db -> run 3000 (app db)
 
 -- We need to complete the following steps to prepare our app requirements:
 --
@@ -58,10 +63,17 @@ runApp = error "runApp needs re-implementing"
 --
 -- Our application configuration is defined in Conf.hs
 --
+-- For ref:
+-- initDB
+  -- :: FilePath
+  -- -> IO ( Either SQLiteResponse FirstAppDB )
+
 prepareAppReqs
   :: IO ( Either StartUpError DB.FirstAppDB )
-prepareAppReqs =
-  error "prepareAppReqs not implemented"
+prepareAppReqs = do
+  let path = dbFilePath firstAppConfig
+  eitherDb <- DB.initDB path
+  pure $ first DBInitErr eitherDb
 
 -- | Some helper functions to make our lives a little more DRY.
 mkResponse
@@ -138,12 +150,13 @@ handleRequest
   :: DB.FirstAppDB
   -> RqType
   -> IO (Either Error Response)
-handleRequest _db (AddRq _ _) =
-  (resp200 PlainText "Success" <$) <$> error "AddRq handler not implemented"
-handleRequest _db (ViewRq _)  =
-  error "ViewRq handler not implemented"
-handleRequest _db ListRq      =
-  error "ListRq handler not implemented"
+handleRequest db (AddRq t c) =
+  (resp200 PlainText "Success" <$) <$> DB.addCommentToTopic db t c
+handleRequest db (ViewRq t)  =
+  -- (\eecs -> (\cs -> (resp200Json (E.list encodeComment) cs)) <$> eecs) <$> DB.getComments db t
+  fmap (resp200Json $ E.list encodeComment) <$> DB.getComments db t
+handleRequest db ListRq      =
+  fmap (resp200Json $ E.list encodeTopic) <$> DB.getTopics db
 
 mkRequest
   :: Request
@@ -187,3 +200,11 @@ mkErrorResponse EmptyCommentText =
   resp400 PlainText "Empty Comment"
 mkErrorResponse EmptyTopic =
   resp400 PlainText "Empty Topic"
+mkErrorResponse DBConstraintError =
+  resp400 PlainText "DB Constraint Error"
+mkErrorResponse DBFormatError =
+  resp400 PlainText "DB Format Error"
+mkErrorResponse DBResultError =
+  resp400 PlainText "DB Result Error"
+mkErrorResponse DBOtherError =
+  resp400 PlainText "DB Other Error"

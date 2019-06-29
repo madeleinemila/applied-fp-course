@@ -1,5 +1,5 @@
 module Level04.Types.Topic
-  ( Topic
+  ( Topic(..)
   , mkTopic
   , getTopic
   , encodeTopic
@@ -59,6 +59,13 @@ getTopic (Topic t) =
 -- functions. There is a quick introduction to `Contravariant` in the `README`
 -- for this level.
 --
+
+-- From Waarg docs
+-- type Encoder f a = EncoderFns Json f a
+-- data EncoderFns i f a
+-- newtype Json
+-- text :: Applicative f => Encoder f Text
+-- ^^ Encode a Text
+
 encodeTopic :: Applicative f => Encoder f Topic
-encodeTopic = -- Try using 'contramap' and 'E.text'
-  error "topic JSON encoder not implemented"
+encodeTopic = contramap getTopic E.text

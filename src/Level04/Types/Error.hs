@@ -10,7 +10,10 @@ data Error
   = UnknownRoute
   | EmptyCommentText
   | EmptyTopic
-  -- Add another constructor for our DB error types.
+  | DBConstraintError
+  | DBFormatError
+  | DBResultError
+  | DBOtherError
   deriving (Eq, Show)
 
 nonEmptyText

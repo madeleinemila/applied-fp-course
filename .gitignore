@@ -22,3 +22,4 @@ cabal.project.local
 level0*/*
 level0*/result
 app_db.db
+.vscode

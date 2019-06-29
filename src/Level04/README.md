@@ -107,12 +107,16 @@ are currently overdrawn:
 
 ```haskell
 newtype Predicate a = Predicate { getPredicate :: a -> Bool }
+-- could also have been written as
+-- newtype Predicate a = Predicate (a -> Bool)
+-- but would not have getPredicate accessor
 
 instance Contravariant Predicate where
   contramap f (Predicate p) = Predicate (p . f)
                                          |   `- First, map the input...
                                          `----- then apply the predicate.
-
+personBankBalance :: Person -> Int
+negative :: Predicate Int
 overdrawn :: Predicate Person
 overdrawn = contramap personBankBalance negative
 ```
